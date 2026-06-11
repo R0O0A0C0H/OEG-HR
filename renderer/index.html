@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OEG Fleet HR System</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1F3A;--navy-mid:#132B50;--navy-light:#1A3A6B;
+  --sea:#1A6FA8;--sea-light:#2B8FCC;--sea-pale:#E8F4FB;
+  --amber:#E8A020;--amber-pale:#FDF3E3;
+  --green:#1B7F4F;--green-pale:#E6F5EE;
+  --red:#C0392B;--red-pale:#FDEDEB;
+  --text:#1A2330;--text-muted:#5A6A7E;--text-light:#8A97A8;
+  --border:#D0D9E4;--border-light:#E8EDF2;
+  --bg:#F4F7FA;--bg-card:#FFFFFF;
+  --radius:8px;--radius-lg:12px;
+  --shadow:0 1px 4px rgba(11,31,58,.08);
+  --shadow-md:0 4px 16px rgba(11,31,58,.12);
+}
+body{font-family:'Noto Sans TC',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;overflow:hidden}
+button{cursor:pointer;font-family:inherit;font-size:14px}
+input,select{font-family:inherit;font-size:14px}
+
+/* ── Shell ── */
+.shell{display:flex;height:100vh;flex-direction:column}
+.topbar{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:48px;flex-shrink:0}
+.topbar-brand{font-size:15px;font-weight:600;letter-spacing:.3px}
+.topbar-right{font-size:12px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:12px}
+.topbar-version{font-size:11px;background:rgba(255,255,255,.1);padding:2px 8px;border-radius:20px}
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* ── Sidebar ── */
+.sidebar{width:200px;background:var(--navy-mid);flex-shrink:0;padding:12px 0;display:flex;flex-direction:column;overflow-y:auto}
+.nav-group{padding:10px 16px 4px;font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 18px;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:rgba(26,111,168,.3);color:#fff;border-left-color:#2B8FCC}
+.nav-item .icon{width:16px;text-align:center;font-size:15px}
+.sidebar-bottom{margin-top:auto;padding:12px}
+.btn-diag{width:100%;padding:7px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius);font-size:12px;text-align:center;cursor:pointer}
+.btn-diag:hover{background:rgba(255,255,255,.1);color:#fff}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.page{display:none;flex:1;flex-direction:column;overflow:hidden}
+.page.active{display:flex}
+.page-scroll{flex:1;overflow-y:auto;padding:20px 24px}
+.page-title{font-size:18px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--text-muted);margin-bottom:18px}
+
+/* ── Card ── */
+.card{background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px}
+.card-title{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+
+/* ── Stat Card ── */
+.stat-card{background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-lg);padding:14px 18px;box-shadow:var(--shadow)}
+.stat-card.c-sea{border-top:3px solid var(--sea)}
+.stat-card.c-amber{border-top:3px solid var(--amber)}
+.stat-card.c-green{border-top:3px solid var(--green)}
+.stat-card.c-red{border-top:3px solid var(--red)}
+.stat-label{font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+.stat-value{font-size:24px;font-weight:700;color:var(--navy);margin:4px 0 2px;line-height:1}
+.stat-sub{font-size:11px;color:var(--text-light)}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.toolbar select,.toolbar input[type=text],.toolbar input[type=number]{
+  padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:#fff;outline:none;transition:border .2s}
+.toolbar select:focus,.toolbar input:focus{border-color:var(--sea)}
+
+/* ── Buttons ── */
+.btn{padding:7px 14px;border-radius:var(--radius);border:none;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-size:13px}
+.btn-primary{background:var(--navy);color:#fff}.btn-primary:hover{background:var(--navy-light)}
+.btn-sea{background:var(--sea);color:#fff}.btn-sea:hover{background:var(--sea-light)}
+.btn-outline{background:#fff;color:var(--navy);border:1.5px solid var(--border)}.btn-outline:hover{border-color:var(--sea);color:var(--sea)}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{opacity:.9}
+.btn-amber{background:var(--amber);color:#fff}.btn-amber:hover{opacity:.9}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{padding:5px 7px;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text-muted);cursor:pointer}.btn-icon:hover{border-color:var(--sea);color:var(--sea)}
+
+/* ── Table ── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border-light)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:var(--navy);color:#fff}
+thead th{padding:9px 12px;text-align:left;font-weight:500;font-size:12px;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border-light);transition:background .1s}
+tbody tr:hover{background:var(--sea-pale)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:8px 12px}
+tfoot tr{background:var(--bg);font-weight:600}
+tfoot td{padding:8px 12px;border-top:2px solid var(--border)}
+.td-num{text-align:right;font-variant-numeric:tabular-nums}
+.td-muted{color:var(--text-muted)}
+
+/* ── Badge ── */
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-vlk{background:#DBEAFE;color:#1E40AF}
+.b-wtn{background:#FEE2E2;color:#991B1B}
+.b-vln{background:#D1FAE5;color:#065F46}
+.b-wyf{background:#EDE9FE;color:#5B21B6}
+.b-active{background:var(--green-pale);color:var(--green)}
+.b-inactive{background:var(--red-pale);color:var(--red)}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(11,31,58,.45);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:var(--radius-lg);width:560px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-title{font-size:15px;font-weight:700;color:var(--navy)}
+.modal-close{background:none;border:none;font-size:20px;color:var(--text-muted);cursor:pointer;padding:2px 6px;border-radius:4px}.modal-close:hover{background:var(--bg)}
+.modal-body{padding:18px 20px;overflow-y:auto;flex:1}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+
+/* ── Form ── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row.col3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:12px;font-weight:500;color:var(--text-muted)}
+.form-group input,.form-group select{padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius);outline:none;transition:border .2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--sea)}
+.form-hint{font-size:11px;color:var(--text-light);margin-top:2px}
+.divider{height:1px;background:var(--border-light);margin:14px 0}
+
+/* ── Attendance Grid ── */
+.att-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.att-cell{aspect-ratio:1;border:1.5px solid var(--border);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s;background:#fff;user-select:none}
+.att-cell:hover{border-color:var(--sea)}
+.att-cell .dn{font-size:9px;color:var(--text-light);font-weight:400}
+.att-cell .dc{font-size:12px;margin-top:1px}
+.att-cell.cX{background:#DBEAFE;border-color:#60A5FA;color:#1D4ED8}
+.att-cell.cD{background:#D1FAE5;border-color:#34D399;color:#065F46}
+.att-cell.cN{background:#1E293B;border-color:#334155;color:#94A3B8}
+.att-cell.cR{background:#FEF9C3;border-color:#FDE047;color:#854D0E}
+.att-cell.cRD{background:#ECFDF5;border-color:#86EFAC;color:#166534}
+.att-cell.cRN{background:#374151;border-color:#4B5563;color:#D1D5DB}
+.att-cell.disabled{opacity:.25;cursor:not-allowed;pointer-events:none}
+.att-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.att-legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)}
+.att-legend-dot{width:12px;height:12px;border-radius:3px}
+
+/* ── Toast ── */
+#toast-wrap{position:fixed;top:14px;right:14px;z-index:999;display:flex;flex-direction:column;gap:6px}
+.toast{padding:9px 14px;border-radius:var(--radius);font-size:13px;font-weight:500;box-shadow:var(--shadow-md);animation:toastIn .2s ease;max-width:280px}
+.toast-success{background:var(--green);color:#fff}
+.toast-error{background:var(--red);color:#fff}
+.toast-info{background:var(--sea);color:#fff}
+@keyframes toastIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+
+/* ── Empty State ── */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty-icon{font-size:36px;margin-bottom:10px}
+.empty-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+
+/* ── Vessel Strip ── */
+.vessel-strip{display:grid;grid-template-columns:repeat(4,1fr);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border-light);margin-bottom:14px}
+.vs{padding:8px 10px;text-align:center;font-size:11px;font-weight:500}
+.vs-vlk{background:#DBEAFE;color:#1E40AF}
+.vs-wtn{background:#FEE2E2;color:#991B1B}
+.vs-vln{background:#D1FAE5;color:#065F46}
+.vs-wyf{background:#EDE9FE;color:#5B21B6}
+.vs .vs-sub{font-size:9px;font-weight:400;opacity:.7;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-brand">⚓ OEG Fleet HR System</div>
+    <div class="topbar-right">
+      <span id="db-path-label" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <span class="topbar-version" id="app-version">v1.0.0</span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="nav-group">主頁</div>
+      <div class="nav-item active" data-page="dashboard"><span class="icon">📊</span>總覽</div>
+      <div class="nav-group">船員管理</div>
+      <div class="nav-item" data-page="crew"><span class="icon">👤</span>船員主檔</div>
+      <div class="nav-group">薪資作業</div>
+      <div class="nav-item" data-page="month"><span class="icon">🗓</span>月份設定</div>
+      <div class="nav-item" data-page="att"><span class="icon">📋</span>出勤輸入</div>
+      <div class="nav-item" data-page="salary"><span class="icon">💰</span>薪資計算</div>
+      <div class="nav-group">系統</div>
+      <div class="nav-item" data-page="backup"><span class="icon">💾</span>備份管理</div>
+      <div class="nav-item" data-page="import"><span class="icon">📥</span>匯入資料</div>
+      <div class="nav-item" data-page="export"><span class="icon">📤</span>匯出報表</div>
+      <div class="sidebar-bottom">
+        <div class="btn-diag" onclick="goPage('diag')">🔧 診斷日誌</div>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-scroll">
+          <div class="page-title">總覽</div>
+          <div class="page-sub" id="dash-period">載入中...</div>
+          <div class="vessel-strip">
+            <div class="vs vs-vlk">Valkyrie<div class="vs-sub">VLK</div></div>
+            <div class="vs vs-wtn">Wotan<div class="vs-sub">WTN</div></div>
+            <div class="vs vs-vln">Valiant<div class="vs-sub">VLN</div></div>
+            <div class="vs vs-wyf">WayFeng<div class="vs-sub">WYF</div></div>
+          </div>
+          <div class="grid4" style="margin-bottom:14px">
+            <div class="stat-card c-sea"><div class="stat-label">在職船員</div><div class="stat-value" id="ds-crew">—</div><div class="stat-sub">四船合計</div></div>
+            <div class="stat-card c-amber"><div class="stat-label">本月出勤筆數</div><div class="stat-value" id="ds-att">—</div><div class="stat-sub">已輸入</div></div>
+            <div class="stat-card c-green"><div class="stat-label">薪資計算</div><div class="stat-value" id="ds-sal">—</div><div class="stat-sub">已計算人數</div></div>
+            <div class="stat-card c-red"><div class="stat-label">本月薪資總額</div><div class="stat-value" id="ds-total" style="font-size:16px">—</div><div class="stat-sub">NTD</div></div>
+          </div>
+          <div class="grid2">
+            <div class="card"><div class="card-title">🚢 各船人員</div><div id="dash-vessels"></div></div>
+            <div class="card"><div class="card-title">👥 職級分布</div><div id="dash-ranks"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CREW ── -->
+      <div class="page" id="page-crew">
+        <div class="page-scroll">
+          <div class="page-title">船員主檔</div>
+          <div class="page-sub">管理四船所有船員的基本資料與薪資參數</div>
+          <div class="toolbar">
+            <select id="crew-f-vessel" onchange="renderCrew()">
+              <option value="">全部船隻</option>
+              <option>Valkyrie</option><option>Wotan</option><option>Valiant</option><option>WayFeng</option>
+            </select>
+            <select id="crew-f-rank" onchange="renderCrew()">
+              <option value="">全部職級</option>
+              <option>MS</option><option>CE</option><option>MM</option><option>AB</option><option>S.AB</option><option>DO</option>
+            </select>
+            <input type="text" id="crew-search" placeholder="搜尋姓名 / OPUS" oninput="renderCrew()" style="width:180px">
+            <div style="flex:1"></div>
+            <button class="btn btn-sea" onclick="openCrewModal(null)">＋ 新增船員</button>
+          </div>
+          <div class="table-wrap" id="crew-table"></div>
+        </div>
+      </div>
+
+      <!-- ── MONTH CONFIG ── -->
+      <div class="page" id="page-month">
+        <div class="page-scroll">
+          <div class="page-title">月份設定</div>
+          <div class="page-sub">設定各船當月 on-hire / off-hire 天數，影響出海獎金保底計算</div>
+          <div class="card" style="max-width:520px">
+            <div class="card-title">📅 選擇月份</div>
+            <div class="form-row">
+              <div class="form-group"><label>年份</label><select id="mc-year"></select></div>
+              <div class="form-group"><label>月份</label><select id="mc-month">
+                <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+                <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+                <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+              </select></div>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="loadMonthConfig()">🔍 載入設定</button>
+            <div class="divider"></div>
+            <div class="card-title">各船停航天數（Off-hire）</div>
+            <div class="grid2" id="mc-form"></div>
+            <div style="margin-top:12px;font-size:12px;color:var(--text-muted)" id="mc-preview"></div>
+            <div style="margin-top:14px">
+              <button class="btn btn-primary" onclick="saveMonthConfig()">💾 儲存月份設定</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ATTENDANCE ── -->
+      <div class="page" id="page-att">
+        <div class="page-scroll">
+          <div class="page-title">出勤輸入</div>
+          <div class="page-sub">選擇月份與船隻，點擊格子循環輸入出勤代碼</div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="toolbar" style="margin-bottom:0">
+              <select id="att-year"></select>
+              <select id="att-month">
+                <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+                <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+                <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+              </select>
+              <select id="att-vessel">
+                <option>Valkyrie</option><option>Wotan</option><option>Valiant</option><option>WayFeng</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="loadAttCrew()">🔍 載入</button>
+              <div style="flex:1"></div>
+              <div class="att-legend">
+                <div class="att-legend-item"><div class="att-legend-dot" style="background:#BFDBFE"></div>X 港內</div>
+                <div class="att-legend-item"><div class="att-legend-dot" style="background:#6EE7B7"></div>D 出海日</div>
+                <div class="att-legend-item"><div class="att-legend-dot" style="background:#334155"></div>N 出海夜</div>
+                <div class="att-legend-item"><div class="att-legend-dot" style="background:#FDE047"></div>R 休假</div>
+                <div class="att-legend-item"><div class="att-legend-dot" style="background:#86EFAC"></div>R/D</div>
+                <div class="att-legend-item"><div class="att-legend-dot" style="background:#4B5563"></div>R/N</div>
+              </div>
+            </div>
+          </div>
+          <div id="att-list">
+            <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">請選擇月份與船隻後點擊「載入」</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SALARY ── -->
+      <div class="page" id="page-salary">
+        <div class="page-scroll">
+          <div class="page-title">薪資計算</div>
+          <div class="page-sub">執行計算後自動產生個人月薪總表（換船合計）</div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="toolbar" style="margin-bottom:0">
+              <select id="sal-year"></select>
+              <select id="sal-month">
+                <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+                <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+                <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+              </select>
+              <select id="sal-vessel">
+                <option value="">全部船隻</option>
+                <option>Valkyrie</option><option>Wotan</option><option>Valiant</option><option>WayFeng</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="loadSalary()">🔍 查詢</button>
+              <div style="flex:1"></div>
+              <button class="btn btn-amber" onclick="runCalc()" id="btn-calc">⚙ 執行計算</button>
+            </div>
+          </div>
+          <div class="grid4" id="sal-cards" style="margin-bottom:14px"></div>
+          <div class="card">
+            <div class="card-title">👤 個人月薪總表（換船合計）</div>
+            <div class="table-wrap" id="sal-summary"></div>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <div class="card-title">🚢 各船薪資明細</div>
+            <div class="table-wrap" id="sal-detail"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BACKUP ── -->
+      <div class="page" id="page-backup">
+        <div class="page-scroll">
+          <div class="page-title">備份管理</div>
+          <div class="page-sub">定期備份資料到 USB 或行動硬碟，保護重要資料</div>
+          <div class="grid2">
+            <div class="card">
+              <div class="card-title">💾 備份資料</div>
+              <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">將目前的資料庫備份到指定的資料夾（USB / 行動硬碟 / 本機）</p>
+              <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">上次備份：<strong id="last-backup-time">—</strong></p>
+              <button class="btn btn-primary" onclick="doBackup()">📂 選擇目標資料夾並備份</button>
+            </div>
+            <div class="card">
+              <div class="card-title">🔄 還原資料</div>
+              <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">從備份檔案還原資料（還原後需重新啟動系統）</p>
+              <p style="font-size:12px;color:var(--red);margin-bottom:14px">⚠ 還原前系統會自動備份目前資料</p>
+              <button class="btn btn-outline" onclick="doRestore()">📂 選擇備份檔案並還原</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">ℹ 資料庫路徑</div>
+            <p style="font-size:13px;font-family:monospace;color:var(--sea)" id="db-path-display">—</p>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ── IMPORT ── -->
+      <div class="page" id="page-import">
+        <div class="page-scroll">
+          <div class="page-title">匯入資料</div>
+          <div class="page-sub">從 Excel 或備份 .db 匯入資料</div>
+          <div class="grid2">
+            <div class="card">
+              <div class="card-title">👤 匯入船員資料</div>
+              <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px">先下載範本，填寫後再匯入。遇到重複 OPUS 編號會顯示差異讓你確認。</p>
+              <div style="display:flex;gap:8px;margin-bottom:14px">
+                <button class="btn btn-outline btn-sm" onclick="doExportCrewTemplate()">⬇ 下載範本</button>
+                <button class="btn btn-sea btn-sm" onclick="doPreviewCrew()">📥 選擇 Excel 匯入</button>
+              </div>
+              <div id="crew-import-preview"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">📋 匯入工時表</div>
+              <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">選擇系統匯出的工時表 Excel，自動寫入出勤記錄。</p>
+              <button class="btn btn-sea btn-sm" onclick="doImportAttendance()">📥 選擇工時表匯入</button>
+              <div id="att-import-result" style="margin-top:12px"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🗄 匯入 .db 資料庫（換電腦用）</div>
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px">將舊電腦的資料庫移到這台電腦。系統會先自動備份現有資料再取代。</p>
+            <p style="font-size:12px;color:var(--red);margin-bottom:14px">⚠ 匯入後需重新啟動系統才會生效</p>
+            <button class="btn btn-outline" onclick="doImportDb()">📂 選擇 .db 檔案匯入</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EXPORT ── -->
+      <div class="page" id="page-export">
+        <div class="page-scroll">
+          <div class="page-title">匯出報表</div>
+          <div class="page-sub">匯出工時表給船員填寫、匯出 PBC 薪資報表</div>
+          <div class="grid2">
+            <div class="card">
+              <div class="card-title">📋 匯出工時表</div>
+              <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">匯出空白工時表給船員填寫出勤代碼，填完後再匯回系統。</p>
+              <div class="toolbar" style="margin-bottom:14px">
+                <select id="exp-att-year"></select>
+                <select id="exp-att-month">
+                  <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+                  <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                  <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+                  <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+                </select>
+                <select id="exp-att-vessel">
+                  <option>Valkyrie</option><option>Wotan</option><option>Valiant</option><option>WayFeng</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="doExportAttendance()">⬇ 匯出工時表</button>
+            </div>
+            <div class="card">
+              <div class="card-title">📊 匯出 PBC 薪資報表</div>
+              <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">完整複製原 Excel PBC 工作表格式，包含各船明細與加總。</p>
+              <div class="toolbar" style="margin-bottom:14px">
+                <select id="exp-pbc-year"></select>
+                <select id="exp-pbc-month">
+                  <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+                  <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                  <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+                  <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="doExportPBC()">⬇ 匯出 PBC</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DIAG ── -->
+      <div class="page" id="page-diag">
+        <div class="page-scroll">
+          <div class="page-title">診斷日誌</div>
+          <div class="page-sub">系統操作記錄，可匯出給維護人員分析</div>
+          <div class="toolbar">
+            <button class="btn btn-outline" onclick="loadLogs()">🔍 重新載入</button>
+            <button class="btn btn-sea" onclick="doExportLog()">📤 匯出 .log 檔</button>
+            <div style="flex:1"></div>
+            <button class="btn btn-danger btn-sm" onclick="doClearLog()">🗑 清除日誌</button>
+          </div>
+          <div class="table-wrap" id="diag-table"></div>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /layout -->
+</div>
+
+<!-- Toast -->
+<div id="toast-wrap"></div>
+
+<!-- Crew Modal -->
+<div class="modal-overlay" id="crew-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="crew-modal-title">新增船員</div>
+      <button class="modal-close" onclick="closeModal('crew-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row col3">
+        <div class="form-group"><label>OPUS編號 *</label><input id="fm-opus" placeholder="OPUS001"></div>
+        <div class="form-group"><label>中文姓名 *</label><input id="fm-chn"></div>
+        <div class="form-group"><label>英文姓名</label><input id="fm-eng"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>船別</label><select id="fm-vessel"><option value="">— 選擇 —</option><option>Valkyrie</option><option>Wotan</option><option>Valiant</option><option>WayFeng</option></select></div>
+        <div class="form-group"><label>職級 *</label><select id="fm-rank"><option value="">— 選擇 —</option><option>MS</option><option>CE</option><option>MM</option><option>AB</option><option>S.AB</option><option>DO</option></select></div>
+      </div>
+      <div class="divider"></div>
+      <div class="form-row col3">
+        <div class="form-group"><label>基本月薪</label><input type="number" id="fm-salary" oninput="calcHint()"><div class="form-hint" id="fm-hint"></div></div>
+        <div class="form-group"><label>出海獎金/日班</label><input type="number" id="fm-sailD"></div>
+        <div class="form-group"><label>出海獎金/夜班</label><input type="number" id="fm-sailN"></div>
+      </div>
+      <div class="form-row col3">
+        <div class="form-group"><label>伙食津貼/天</label><input type="number" id="fm-food" value="300"></div>
+        <div class="form-group"><label>交通津貼/月</label><input type="number" id="fm-trans" value="2980"></div>
+        <div class="form-group"><label>職位加給/月</label><input type="number" id="fm-pos" value="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>狀態</label><select id="fm-active"><option value="1">在職</option><option value="0">離職</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('crew-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveCrew()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Att Modal -->
+<div class="modal-overlay" id="att-modal">
+  <div class="modal" style="width:680px">
+    <div class="modal-header">
+      <div class="modal-title" id="att-modal-title">出勤輸入</div>
+      <button class="modal-close" onclick="closeModal('att-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="att-cal"></div>
+      <div class="divider"></div>
+      <div class="form-row col3">
+        <div class="form-group"><label>加班時數 OT</label><input type="number" id="att-ot" value="0" min="0" step="0.5"></div>
+        <div class="form-group"><label>交通時間 TT</label><input type="number" id="att-tt" value="0" min="0" step="0.5"></div>
+        <div class="form-group"><label>出海獎金調整</label><input type="number" id="att-adj" value="0"></div>
+      </div>
+      <div id="att-stats" style="font-size:12px;color:var(--text-muted);margin-top:8px;display:flex;gap:12px;flex-wrap:wrap"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('att-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveAtt()">儲存出勤</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Remind Modal -->
+<div class="modal-overlay" id="remind-modal">
+  <div class="modal" style="width:620px">
+    <div class="modal-header">
+      <div class="modal-title">⏰ 晉升 / 轉正提醒</div>
+      <button class="modal-close" onclick="closeModal('remind-modal')">×</button>
+    </div>
+    <div class="modal-body" id="remind-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('remind-modal')">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- Crew Import Preview Modal -->
+<div class="modal-overlay" id="crew-import-modal">
+  <div class="modal" style="width:900px;max-width:96vw">
+    <div class="modal-header">
+      <div class="modal-title">📥 確認匯入船員資料</div>
+      <button class="modal-close" onclick="closeModal('crew-import-modal')">×</button>
+    </div>
+    <div class="modal-body" id="crew-import-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('crew-import-modal')">取消</button>
+      <button class="btn btn-primary" onclick="confirmCrewImport()">確認匯入勾選項目</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
